@@ -4,5 +4,5 @@ $(document).ready(function() {
             console.log("blue");
             $("#label").css("color", "blue");
         } else {$("#label").css("color", "red");console.log($("#label").css("color"));}
-    }, 2000);
+    }, 1500);
 });
