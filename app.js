@@ -7,7 +7,7 @@ var io = io.listen(messageServer);
 var cookieParser = require('cookie-parser');
 var bodyParser = require("body-parser");
 var mongo = require('mongodb').MongoClient;
-var mongoURI = "mongodb://asai95:19959509Ax@127.0.0.1:27017/users";
+var mongoURI = process.env.MONGO_URI;
 
 function usersChange(login, pass, mode, key, callback) {
 	var mode = mode || "check";
