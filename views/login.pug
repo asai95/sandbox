@@ -1,0 +1,26 @@
+doctype
+html
+	head.
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+		<link href="https://fonts.googleapis.com/css?family=Droid+Serif|Oswald|Raleway|Roboto|Roboto+Condensed|Roboto+Slab" rel="stylesheet">
+		<link type="text/css" href="/static/style.css" rel="stylesheet"/>
+		<link type="text/css" href="/static/login_style.css" rel="stylesheet"/>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+		<script type="text/javascript" src="/static/jquery.cookie.js"></script>
+		<script src="https://cdn.socket.io/socket.io-1.0.0.js"></script>
+		<script type="text/javascript" src="/static/login_front.js"></script>
+	body
+		div(style="margin-left: -15px; margin-right: -8px;")
+			ul.navbar.
+				<li><a href="#">Home</a></li>
+				<li><a href="#">About</a></li>
+			div.pop
+				span.close x
+				p.message Login incorrect
+		div(class="center container")
+			p.error #{error}
+			<input type=text id=login></input>
+			<input type=password id=pass></input>
+			<button id=send type=submit>Submit</button>
+			<a href="/register"><button type=submit>Register</button></a>
