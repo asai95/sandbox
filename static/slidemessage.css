@@ -1,0 +1,21 @@
+.pop {
+    position: fixed;
+    background-color: #f44;
+    top: 47px;
+    right: 0;
+    width: 100%;
+    font-size: 18px;
+    color: snow;
+    font-family: 'Roboto', sans-serif;
+    text-align: center;
+    display: block;
+    z-index: 1;
+}
+
+.close {
+    float: right;
+    margin-right: 20px;
+    margin-top: 5px;
+    font-weight: 600;
+    cursor: pointer;
+}

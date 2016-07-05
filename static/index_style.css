@@ -1,0 +1,70 @@
+.container {
+    width: 50%;
+}
+
+textarea {
+    resize: none;
+    overflow-y: auto;
+}
+
+#user-list {
+    overflow: auto;
+}
+
+.message-area {
+    border: 3px solid black;
+    height: 70vh;
+    overflow-y: auto;
+    max-width: 600px;
+    margin: auto;
+}
+
+.message {
+    width: 99.5%;
+    overflow: hidden;
+    display: block;
+}
+
+.message-in, .message-out {
+    border: 1px solid #bcd;
+    border-radius: 3px;
+    background-color: #cdf;
+    max-width: 80%;
+    width: auto;
+    padding: 5px 10px;
+    word-wrap: break-word;
+}
+
+.message-in {
+    float: left;
+    text-align: left;
+}
+
+.message-out {
+    display: block;
+    float: right;
+    text-align: right;
+}
+
+.users-container {
+    position: fixed;
+    display: inline-block;
+    width: 20%;
+    height: 80%;
+    border: 2px solid black;
+}
+
+.users-list {
+    list-style-type: none;
+    padding: 0px;
+}
+
+.user {
+    padding: 20px 5px;
+    cursor: pointer;
+}
+
+@media screen and (max-width: 720px) {
+  .users-container { display: none; }
+  .container {width: 90%;}
+}

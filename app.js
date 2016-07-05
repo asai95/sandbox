@@ -8,6 +8,21 @@ var cookieParser = require('cookie-parser');
 var bodyParser = require("body-parser");
 var mongo = require('mongodb').MongoClient;
 var mongoURI = process.env.MONGO_URI;
+var users = {};
+
+function addZero(x) {
+  if (parseInt(x) < 10) {
+    return "0" + x;
+  } else {
+    return x;
+  }
+}
+
+function getDateString(x) {
+	var date = new Date(x);
+	return date.getDate()+"."+date.getMonth()+"."+date.getFullYear()+"-"+addZero(date.getHours())+":"+addZero(date.getMinutes())+":"+addZero(date.getSeconds());
+}
+
 
 function usersChange(login, pass, mode, key, callback) {
 	var mode = mode || "check";
@@ -19,6 +34,7 @@ function usersChange(login, pass, mode, key, callback) {
 						user.find({"login": login, "pass": pass}).toArray((err, doc) => {
 							if (!err) {
 								if (doc.length !== 0) {
+									console.log(doc)
 									var newKey = new Date().valueOf() * Math.random() + '';
 									user.update({"login": login, "pass": pass}, {$set: {"key": newKey}});
 									users.close();
@@ -41,7 +57,7 @@ function usersChange(login, pass, mode, key, callback) {
 					if (!err) {
 						if (doc.length === 0) {
 							var newKey = new Date().valueOf() * Math.random() + '';
-							user.insert({"login": login, "pass": pass, "key": newKey});
+							user.insert({"login": login, "pass": pass, "key": newKey, "friends": []});
 							users.close();
 							return callback("regsuccess", login, newKey);
 						} else {users.close(); return callback("regerr");}
@@ -52,11 +68,49 @@ function usersChange(login, pass, mode, key, callback) {
 		});
 }
 
+function getMessages(name, friend, callback) {
+	console.log(friend)
+	mongo.connect(mongoURI, (err, users) => {
+		var user = users.collection("user");
+		user.find({"login": name}).toArray((err, doc) => {
+			//console.dir(doc)
+			doc[0].friends.forEach((obj) => {
+				if (obj.name == friend) {
+					return callback(obj.messages);
+				}
+			});
+		});
+	});
+}
+
+function addMessage(name, friend, type, message) {
+	mongo.connect(mongoURI, (err, users) => {
+		var user = users.collection("user");
+		var date = new Date();
+		user.update(
+			{
+				"login" : name,
+				"friends": {"$elemMatch": {"name": friend}}
+			},
+			{
+				$push:
+					{
+						"friends.$.messages": {"time": date, "type": type, "content": message}
+					}
+			}, 
+			{
+				"multi" : false, 
+				"upsert" : false
+			}
+		);
+		users.close();
+	});
+}
+
 app.use("/static", express.static(__dirname+"/static"));
 app.set('view engine', 'pug');
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: false }));
-var users = {};
 
 app.get("/", (req, resp) => {
 	var name = req.cookies.name;
@@ -80,20 +134,37 @@ app.get("/register", (req, resp) => {
 
 io.on("connection", (socket) => {
 	var name;
-	socket.on("chat message", (data) => {
-		var sendName = data.to[0];
+	socket.on("chat out", (data) => {
+		var sendName = data.to;
 		var message = data.message;
 		idToSend = users[sendName];
-		socket.to(idToSend).emit("chat message", message);
+		socket.to(idToSend).emit("chat in", message);
+		addMessage(data.name, sendName, "out", message);
 	});
 	socket.on("handshake", (data) => {
-		users[data] = socket.id;
 		name = data;
-		io.sockets.emit("users change", users);
+		users[data] = socket.id;
+		io.sockets.emit("users change");
 	});
 	socket.on("disconnect", function() {
 		delete users[name];
-		io.sockets.emit("users change", users);
+		io.sockets.emit("users change");
+	});
+
+	socket.on("ask users", function() {
+		socket.emit("users answer", users);
+	});
+
+	socket.on("get messages", (friend) => {
+		console.log(name)
+		getMessages(name, friend, (messages) => {
+			console.log(messages)
+			socket.emit("send messages", messages);
+		});
+	});
+
+	socket.on("got message", (message) => {
+		addMessage(message.name, message.to, "in", message.message);
 	});
 	
 	socket.on("login attempt", (cred) => {
@@ -122,4 +193,7 @@ io.on("connection", (socket) => {
 });
 
 app.listen(80);
-messageServer.listen(5555);
+messageServer.listen(5555, function() {
+	console.log("wow"); 
+	setTimeout(function() {io.sockets.emit("force reload");}, 1500); //dirty
+});

@@ -1,23 +1,19 @@
+function checkPassword(pass1, pass2) {
+    return pass1 = pass2;
+}
+
 $(document).ready(function() {
-var socket = io.connect("http://10.42.0.138:5555", {transports: ['websocket'], secure: true});
-    
-    socket.on("regerr", function() {
-            $('.pop').slideDown(1000);
-        });
-    
-    socket.on("regsuccess", function(data) {
-            $.cookie("name", data.name);
-            $.cookie("key", data.key);
-            window.location = "/";
-        });
-    
-    $('.pop').slideUp(0);
-    
-    $('.close').click(function() {
-       $('.pop').slideUp(1000);
-    });
-    
     $("#send").click(function() {
-        socket.emit("reg attempt", {"login": $("#login").val(), "pass": $("#pass").val()});    
+        $('.pop').slideUp(0);
+        console.log($("#pass").val());
+        if (checkPassword($("#pass").val(), $("#ret-pass").val()) && checkFieldsNotEmpty($("#login").val(), $("#pass").val(), $("#ret-pass").val())) {
+            formSocket.emit("reg attempt", {"login": $("#login").val(), "pass": $("#pass").val()});   
+        } else if (!checkFieldsNotEmpty($("#login").val(), $("#pass").val(), $("#ret-pass").val())) {
+            setErrMessage("One of the fields is empty");
+            $('.pop').slideDown(500);
+        } else {
+            setErrMessage("One of the fields is empty");
+            $('.pop').slideDown(500);
+        }
     });
 });
