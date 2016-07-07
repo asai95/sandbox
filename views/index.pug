@@ -14,17 +14,20 @@ html
 	body
 		div(style="margin-left: -15px; margin-right: -8px;")
 			ul.navbar
-				<li><a href="/">Home</a></li>
-				<li><a href="#">User</a></li>
-				<li><a href="#">Messages</a></li>
-				<li><a href="/" id=exit>Exit</a></li>
+				<li class=mobile><a href="#" class=mobile>&#9776;</a></li>
+				<li id=you>asai95</li>
+				<li class=exit><a href="/" id=exit>Exit</a></li>
 			div.pop
 				span.close x
-				p.message
-		div.users-container
-			ul.users-list
+				p.err-message
+		div(id="mobile-helper")
+			div.users-container
+				ul.users-list
+				input(type="text" id="friend-field")
+				button(id="friend-add") Add
 		div(class="center container")
 			br
 			div.message-area
 			textarea(cols=40 rows=5 wrap="hard")
 			button(id="send" type="submit") Send
+			

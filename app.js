@@ -69,22 +69,25 @@ function usersChange(login, pass, mode, key, callback) {
 }
 
 function getMessages(name, friend, callback) {
-	console.log(friend)
+	//console.log(friend)
 	mongo.connect(mongoURI, (err, users) => {
 		var user = users.collection("user");
 		user.find({"login": name}).toArray((err, doc) => {
 			//console.dir(doc)
-			doc[0].friends.forEach((obj) => {
-				if (obj.name == friend) {
-					return callback(obj.messages);
-				}
-			});
+			if (doc[0] !== undefined) {
+				doc[0].friends.forEach((obj) => {
+					if (obj.name == friend) {
+						return callback(obj.messages);
+					}
+				});
+			} else {return callback([])}
 		});
 	});
 }
 
 function addMessage(name, friend, type, message) {
 	mongo.connect(mongoURI, (err, users) => {
+		console.log(name+" "+friend)
 		var user = users.collection("user");
 		var date = new Date();
 		user.update(
@@ -104,6 +107,71 @@ function addMessage(name, friend, type, message) {
 			}
 		);
 		users.close();
+	});
+}
+
+function friend(name, friend, mode, callback) {
+	mongo.connect(mongoURI, (err, users) => {
+		var user = users.collection("user");
+		user.find({"login" : name, "friends": {"$elemMatch": {"name": friend}}}).toArray((err, doc) => {
+			if (mode == "add") {
+				console.log(name+" "+friend)
+				console.log(doc);
+				if (doc.length === 0) {
+					console.log("here");
+					user.update(
+						{
+							"login" : name,
+						},
+						{
+							$push:
+								{
+									"friends": {"name": friend, "messages": []}
+								}
+						}, 
+						{
+							"multi" : false, 
+							"upsert" : false
+						}
+					);
+					users.close();
+					return callback("success");
+				} else {return callback("friendAlready");}
+			} else if (mode == "del") {
+				if (doc ) {
+					user.update(
+						{
+							"login" : name,
+						},
+						{
+							$pull:
+								{
+									"friends": {"name": friend}
+								}
+						}, 
+						{
+							"multi" : false, 
+							"upsert" : false
+						}
+					);
+					users.close();
+					return callback("success");
+				} else {return callback("noSuchFriend");}
+			}
+		});
+	});
+}
+
+function getFriends(name, callback) {
+	mongo.connect(mongoURI, (err, users) => {
+		var user = users.collection("user");
+		var list = [];
+		user.find({"login": name}).toArray((err, doc) => {
+			doc[0].friends.forEach((friend) => {
+				list.push(friend.name);
+			});
+			return callback(list);
+		});
 	});
 }
 
@@ -138,8 +206,9 @@ io.on("connection", (socket) => {
 		var sendName = data.to;
 		var message = data.message;
 		idToSend = users[sendName];
-		socket.to(idToSend).emit("chat in", message);
+		socket.to(idToSend).emit("chat in", {"from": data.name, "message": message});
 		addMessage(data.name, sendName, "out", message);
+		addMessage(sendName, data.name, "in", message);
 	});
 	socket.on("handshake", (data) => {
 		name = data;
@@ -151,20 +220,51 @@ io.on("connection", (socket) => {
 		io.sockets.emit("users change");
 	});
 
-	socket.on("ask users", function() {
-		socket.emit("users answer", users);
+	socket.on("get messages", (friend) => {
+		if (friend !== undefined) {
+			getMessages(name, friend, (messages) => {
+				//console.log(messages)
+				socket.emit("send messages", messages);
+			});
+		}
 	});
 
-	socket.on("get messages", (friend) => {
-		console.log(name)
-		getMessages(name, friend, (messages) => {
-			console.log(messages)
-			socket.emit("send messages", messages);
+
+	socket.on("friend request", (data) => {
+		//console.log(data)
+		var friendAlready = false;
+		idToSend = users[data.to];
+		getFriends(data.to, (list) => {
+			list.forEach((a) => {
+				if (a == data.name) {friendAlready = true}
+			})
+			if (!friendAlready) {
+				socket.to(idToSend).emit("ask friend request", data.name);
+			}
+		})
+	});
+
+	socket.on("add friend", (data) => {
+		var nm = data.friend;
+		var fr= data.name;
+		//console.log(nm+" "+fr)
+		friend(nm, fr, "add", (status) => {
+			if (status == "success") {
+				friend(fr, nm, "add", (status) => {
+					if (status == "success") {socket.emit("users change"); socket.to(users[nm]).emit("users change")}
+				});
+			};
 		});
 	});
 
-	socket.on("got message", (message) => {
-		addMessage(message.name, message.to, "in", message.message);
+	socket.on("get friends", (name) => {
+		getFriends(name, (list) => {
+			var answ = {};
+			list.forEach((user) => {
+				answ[user] = users.hasOwnProperty(user) ? "online" : "offline";
+			})
+			socket.emit("get friends", answ);
+		});
 	});
 	
 	socket.on("login attempt", (cred) => {
